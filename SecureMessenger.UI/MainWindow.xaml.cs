@@ -37,7 +37,7 @@ namespace SecureMessenger.UI
             messageWorker.StartAsync(CancellationToken.None).ConfigureAwait(false);
         }
 
-        private async void RegisterButton_Click(object sender, RoutedEventArgs e)
+        public async void RegisterButton_Click(object sender, RoutedEventArgs e)
         {
             var command = new RegisterUserCommand
             {
@@ -87,7 +87,7 @@ namespace SecureMessenger.UI
             }
         }
 
-        private async void SendMessageButton_Click(object sender, RoutedEventArgs e)
+        public async void SendMessageButton_Click(object sender, RoutedEventArgs e)
         {
             if (string.IsNullOrWhiteSpace(ReceiverIdTextBox.Text) || string.IsNullOrWhiteSpace(MessageTextBox.Text) ||
                 string.IsNullOrWhiteSpace(EncryptionKeyBox.Password))
