@@ -7,6 +7,8 @@ using SecureMessenger.Application.Messages.Commands;
 using SecureMessenger.Infrastructure.Services;
 using SecureMessenger.Workers;
 using Microsoft.Extensions.Hosting;
+using FluentValidation.AspNetCore;
+using FluentValidation;
 
 namespace SecureMessenger.UI
 {
@@ -49,6 +51,7 @@ namespace SecureMessenger.UI
             services.AddSingleton<MessageWorker>();
             services.AddSingleton<MainWindow>();
             services.AddHostedService<MessageWorker>();
+            services.AddValidatorsFromAssemblyContaining<SendMessageCommandValidator>();
 
             // Dodaj ovo za IHost
             services.AddHostedService<MessageWorker>();

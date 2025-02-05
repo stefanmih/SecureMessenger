@@ -1,4 +1,7 @@
-﻿using MediatR;
+﻿using FluentValidation;
+using FluentValidation.Results;
+using MediatR;
+using SecureMessenger.Application.Messages.Validators;
 using SecureMessenger.Domain.Entities;
 using SecureMessenger.Infrastructure.Persistence;
 using System.Windows;
@@ -24,6 +27,13 @@ namespace SecureMessenger.Application.Messages.Commands
                     ReceiverId = request.ReceiverId,
                     EncryptedContent = request.PlainContent
                 };
+                var validator = new MessageValidator();
+                ValidationResult validationResult = await validator.ValidateAsync(message);
+
+                if (!validationResult.IsValid)
+                {
+                    throw new ValidationException(validationResult.Errors);
+                }
                 _context.Messages.Add(message);
                 await _context.SaveChangesAsync(cancellationToken);
                 return message.Id;

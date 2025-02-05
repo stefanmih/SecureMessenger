@@ -33,7 +33,7 @@ namespace SecureMessenger.Infrastructure.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"❌ Encryption ERROR: {ex.Message}");
+                Console.WriteLine($"Encryption ERROR: {ex.Message}");
                 throw;
             }
         }

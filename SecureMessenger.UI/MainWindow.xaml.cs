@@ -8,6 +8,8 @@ using Microsoft.Extensions.Hosting;
 using System.IO;
 using System.Windows;
 using System.Runtime.InteropServices;
+using FluentValidation.Results;
+using FluentValidation;
 
 namespace SecureMessenger.UI
 {
@@ -89,32 +91,35 @@ namespace SecureMessenger.UI
 
         public async void SendMessageButton_Click(object sender, RoutedEventArgs e)
         {
-            if (string.IsNullOrWhiteSpace(ReceiverIdTextBox.Text) || string.IsNullOrWhiteSpace(MessageTextBox.Text) ||
-                string.IsNullOrWhiteSpace(EncryptionKeyBox.Password))
+            try
             {
-                System.Windows.MessageBox.Show("All fields are required!", "Error", MessageBoxButton.OK, MessageBoxImage.Warning);
-                return;
+                int receiverId = int.Parse(ReceiverIdTextBox.Text);
+                string encryptedMessage = _aesEncryptionService.Encrypt(MessageTextBox.Text, EncryptionKeyBox.Password);
+
+                var command = new SendMessageCommand
+                {
+                    SenderId = _loggedInUserId.Value,
+                    ReceiverId = receiverId,
+                    PlainContent = encryptedMessage,
+                    EncryptionKey = EncryptionKeyBox.Password
+                };
+
+                var validator = new SendMessageCommandValidator();
+                ValidationResult validationResult = await validator.ValidateAsync(command);
+
+                if (!validationResult.IsValid)
+                {
+                    throw new ValidationException(validationResult.Errors);
+                }
+
+                var messageId = await _mediator.Send(command);
+
+                System.Windows.MessageBox.Show($"Message sent with ID: {messageId}", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
             }
-
-            if (!int.TryParse(ReceiverIdTextBox.Text, out int receiverId))
+            catch (Exception ex)
             {
-                System.Windows.MessageBox.Show("Receiver ID must be a number!", "Error", MessageBoxButton.OK, MessageBoxImage.Warning);
-                return;
+                System.Windows.MessageBox.Show($"Error: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
-
-            string encryptedMessage = _aesEncryptionService.Encrypt(MessageTextBox.Text, EncryptionKeyBox.Password);
-
-            var command = new SendMessageCommand
-            {
-                SenderId = _loggedInUserId.Value,
-                ReceiverId = receiverId,
-                PlainContent = encryptedMessage,
-                EncryptionKey = EncryptionKeyBox.Password
-            };
-
-            var messageId = await _mediator.Send(command);
-
-            System.Windows.MessageBox.Show($"Message sent with ID: {messageId}", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
         private async void LoadMessages()
@@ -123,10 +128,8 @@ namespace SecureMessenger.UI
 
             var query = new GetMessagesQuery { ReceiverId = _loggedInUserId.Value };
             var messages = await _mediator.Send(query);
-            Console.Write("USLO U LOAD");
             await System.Windows.Application.Current.Dispatcher.InvokeAsync(async () =>
             {
-                Console.WriteLine("LOGUJE");
                 MessagesListBox.Items.Clear();
                 foreach (var message in messages)
                 {
