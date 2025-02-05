@@ -1,4 +1,4 @@
-name: .NET Core Desktop
+name: Build SecureMessenger EXE
 
 on:
   push:
@@ -10,62 +10,34 @@ jobs:
 
   build:
 
-    strategy:
-      matrix:
-        configuration: [Debug, Release]
-
     runs-on: windows-latest
 
     env:
-      Solution_Name: SecureMessenger.sln                         # Naziv rešenja (.sln)
-      Wap_Project_Directory: SecureMessenger.Package             # Direktorijum gde se nalazi WAP projekat
-      Wap_Project_Path: SecureMessenger.Package\SecureMessenger.Package.wapproj  # Putanja do WAP projekta
+      Solution_Name: SecureMessenger.sln  # Naziv rešenja (.sln)
 
     steps:
-    - name: Checkout
+    - name: Checkout Repository
       uses: actions/checkout@v4
       with:
         fetch-depth: 0
 
-    # Install the .NET Core workload
-    - name: Install .NET Core
+    - name: Install .NET 9
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: 9.0.x
 
-    # Add MSBuild to the PATH
-    - name: Setup MSBuild.exe
+    - name: Setup MSBuild
       uses: microsoft/setup-msbuild@v2
 
-    # Restore the application
-    - name: Restore the application
-      run: msbuild $env:Solution_Name /t:Restore /p:Configuration=$env:Configuration
-      env:
-        Configuration: ${{ matrix.configuration }}
+    - name: Restore Dependencies
+      run: msbuild $env:Solution_Name /t:Restore /p:Configuration=Release
 
-    # Decode the base64 encoded PFX certificate
-    - name: Decode the PFX
-      run: |
-        $pfx_cert_byte = [System.Convert]::FromBase64String("${{ secrets.Base64_Encoded_Pfx }}")
-        $certificatePath = Join-Path -Path $env:Wap_Project_Directory -ChildPath GitHubActionsWorkflow.pfx
-        [IO.File]::WriteAllBytes("$certificatePath", $pfx_cert_byte)
+    - name: Build Solution
+      run: msbuild $env:Solution_Name /p:Configuration=Release /p:Platform="Any CPU"
 
-    # Create the app package
-    - name: Create the app package
-      run: msbuild $env:Wap_Project_Path /p:Configuration=$env:Configuration /p:UapAppxPackageBuildMode=$env:Appx_Package_Build_Mode /p:AppxBundle=$env:Appx_Bundle /p:PackageCertificateKeyFile=GitHubActionsWorkflow.pfx /p:PackageCertificatePassword=${{ secrets.Pfx_Key }}
-      env:
-        Appx_Bundle: Always
-        Appx_Bundle_Platforms: x86|x64
-        Appx_Package_Build_Mode: StoreUpload
-        Configuration: ${{ matrix.configuration }}
-
-    # Remove the PFX certificate
-    - name: Remove the PFX
-      run: Remove-Item -path $env:Wap_Project_Directory\GitHubActionsWorkflow.pfx
-
-    # Upload the MSIX package
-    - name: Upload build artifacts
+    - name: Upload EXE Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: MSIX Package
-        path: ${{ env.Wap_Project_Directory }}\AppPackages
+        name: SecureMessenger EXE
+        path: |
+          **\bin\Release\**\*.exe
